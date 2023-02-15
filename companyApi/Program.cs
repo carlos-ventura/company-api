@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<EmployeeContext>(opt => opt.UseInMemoryDatabase("EmployeeDatabase"));
@@ -13,11 +14,11 @@ app.MapPost("/employee", async (Employee employee, EmployeeContext db) =>
     await db.Employees.AddAsync(employee);
     await db.SaveChangesAsync();
 
-    return Results.Created($"/employee/{employee.Id}", employee);
+    return Results.Ok();
 });
 
-app.MapGet("/employee", async (int employeeId, EmployeeContext db) =>
-    await db.Employees.FindAsync(employeeId)
+app.MapGet("/employee/{id}", async (int id, EmployeeContext db) =>
+    await db.Employees.FindAsync(id)
     is Employee employee
             ? Results.Ok(employee)
             : Results.NotFound());
@@ -28,6 +29,33 @@ app.MapPost("/employee/{id}/timeregistration", async (int id, TimeRegistration i
     await db.SaveChangesAsync();
 
     return Results.Created($"/employee/{id}/timeregitration/{inputTr.Id}", inputTr.Id);
+});
+
+app.MapGet("/employeetimes/{id}", async (int id, int month, EmployeeContext db) =>
+{
+    // Verify employee exists
+    var employee = await db.Employees.FindAsync(id);
+    if (employee == null)
+    {
+        return Results.NotFound();
+    }
+
+    // get time-registrations belonging to ID and specified month
+    var timeRegistrations = await db.TimeRegistrations
+        .Where(tr => tr.EmployeeId == id
+                     && tr.Date.Month == month)
+        .ToListAsync();
+
+    // Add variables here for the amount (takes into account hourly rate)
+    double totalInvoiced = 0;
+    double totalExpected = 0;
+    foreach (var timeRegistration in timeRegistrations)
+    {
+        totalInvoiced += timeRegistration.InvoicedHours;
+        totalExpected += timeRegistration.ExpectedHours;
+    }
+
+    return Results.Ok((totalInvoiced, totalExpected));
 });
 
 app.Run();
