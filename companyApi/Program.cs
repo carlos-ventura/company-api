@@ -10,15 +10,24 @@ app.MapGet("/employees", async (EmployeeContext db) =>
 
 app.MapPost("/employee", async (Employee employee, EmployeeContext db) =>
 {
-    db.Employees.Add(employee);
+    await db.Employees.AddAsync(employee);
     await db.SaveChangesAsync();
 
     return Results.Created($"/employee/{employee.Id}", employee);
 });
 
 app.MapGet("/employee", async (int employeeId, EmployeeContext db) =>
+    await db.Employees.FindAsync(employeeId)
+    is Employee employee
+            ? Results.Ok(employee)
+            : Results.NotFound());
+
+app.MapPost("/employee/{id}/timeregistration", async (int id, TimeRegistration inputTr, EmployeeContext db) =>
 {
-    await db.Employees.FirstAsync(e => e.Id == employeeId);
+    await db.TimeRegistrations.AddAsync(inputTr);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/employee/{id}/timeregitration/{inputTr.Id}", inputTr.Id);
 });
 
 app.Run();
