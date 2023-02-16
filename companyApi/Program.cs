@@ -63,7 +63,7 @@ app.MapGet("/employeetimes/{id}", async (int id, int month, EmployeeContext db) 
         totalExpected += timeRegistration.ExpectedHours;
     }
 
-    return Results.Ok((totalInvoiced, totalExpected));
+    return Results.Ok(new Dictionary<string, double> { { "totalInvoiced", totalInvoiced }, { "totalExpected", totalExpected } });
 });
 
 app.Run();
